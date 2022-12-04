@@ -130,9 +130,7 @@ dmypy.json
 
 # project's files
 .vscode/
-data/
 wandb/
-output_icp/
 pretrained/
 *.out
 .history/
