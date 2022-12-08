@@ -5,8 +5,8 @@ data:
   reduced_output_dir: ./data/outputs/VM_out_reduced
   reduced_emb_dir: ./data/embeddings/VM_emb_reduced
   emb_dir: './data/embeddings/VM_emb'
-  image_dir: '~/Dir/datasets/imagenet_21k_small'
-  image_id2words: './data/image_ids_wiki_using.txt'
+  image_dir: '~/Dir/datasets/imagenet_21k_small' # the path of images
+  image_id2words: './data/image_ids_wiki_using.txt' # the map between image class id to its alias
   per_object_embs_path: ./data/embeddings/res_images_embeddings # Directory to save the embeddings of per image/word
 model:
   model_type: VM
