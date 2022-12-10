@@ -12,6 +12,7 @@ from src.utils.build_dispersion_dictionaries import *
 from src.utils.get_frequency import *
 from src.utils.get_polysemy import *
 
+import time
 
 def enforce_reproducibility(seed=42):
     # Sets seed manually for both CPU and CUDA
@@ -112,7 +113,18 @@ def main_function(args, logger):
             # print(words, sentences)
             model, tokenizer = load_model(args)
             logger.info('==========Wording embedding==========')
+            
+            start_time = time.time()
+
             words_in_sentences, targets = average_word_embedding(sentences, model, tokenizer, args)
+
+                # Calculate end time
+            end_time = time.time()
+            
+            # Calculate and print running time
+            running_time = end_time - start_time
+            print("Running time:", running_time)
+
             logger.info(f'target shape: {targets.shape}')
             with open(args.data.ordered_wordlist_path,'w') as word_w:
                 for word in words_in_sentences:
@@ -222,16 +234,16 @@ if __name__ == "__main__":
 
     main_function(config, logger)
 
-    seeds = np.random.randint(0, 1000, size=5)
+    # seeds = np.random.randint(0, 1000, size=5)
 
-    # build dictionary image to word
-    if config.model.model_type == "VM":
-        shuffle_dictionary(config, seeds)
+    # # build dictionary image to word
+    # if config.model.model_type == "VM":
+    #     shuffle_dictionary(config, seeds)
 
-    # For dispersion, polysemy, frequency experiments
-    build_dis_dict(config, seeds)
-    if config.model.model_type == "VM":
-        build_polyseme_dict(get_polyseme(config), config, seeds)
-        build_frequency_dict(get_frequency_rank(config), config, seeds)
+    # # For dispersion, polysemy, frequency experiments
+    # build_dis_dict(config, seeds)
+    # if config.model.model_type == "VM":
+    #     build_polyseme_dict(get_polyseme(config), config, seeds)
+    #     build_frequency_dict(get_frequency_rank(config), config, seeds)
     
-    io_util.save_config(config, os.path.join(exp_dir, 'config.yaml'))
+    # io_util.save_config(config, os.path.join(exp_dir, 'config.yaml'))

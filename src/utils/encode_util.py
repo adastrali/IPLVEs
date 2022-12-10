@@ -8,7 +8,7 @@ from sklearn.decomposition import PCA
 
 from MUSE.src.logger import create_logger
 
-from .sentences_downloader import sentences_download
+from src.utils.sentences_downloader import sentences_download
 
 
 def initialize_exp(params):
@@ -91,10 +91,22 @@ def get_embeddings(inputs, model):
     
     Args:
       inputs: a list of strings, where each string is a sentence
-      model: the model that we're using to get the embeddings
+      model: the model that we're using tossssssss get the embeddings
     """
     with torch.no_grad():
         outputs = model(**inputs)
     last_hidden_state = outputs.last_hidden_state
     token_embeddings = torch.squeeze(last_hidden_state, dim=0)
     return [token_embed.tolist() for token_embed in token_embeddings]
+
+
+def process_word(word, subword_average_embedding, target_word_average_embeddings, args):
+    if args.model.get("need_per_object_embs", True):
+        format_embeddings(
+            np.array(subword_average_embedding), 
+            [f"{word}_{i}" for i in range(len(subword_average_embedding))], 
+            os.path.join(args.data.per_object_embs_path, word))
+    average_word_embedding = np.mean(subword_average_embedding, axis=0)
+    target_word_average_embeddings.append(average_word_embedding)
+    subword_average_embedding = []
+    return target_word_average_embeddings, subword_average_embedding

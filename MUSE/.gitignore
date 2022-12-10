@@ -122,5 +122,5 @@ Session.vim
 *~
 # auto-generated tag files
 tags
-
+supervised_*.py
 # End of https://www.gitignore.io/api/vim,python
