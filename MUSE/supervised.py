@@ -32,7 +32,8 @@ PARAMETERS_NUM = {
     "segformer-b2-finetuned-ade-512-512":24.2,
     "segformer-b3-finetuned-ade-512-512":44.0,
     "segformer-b4-finetuned-ade-512-512":60.8,
-    "segformer-b5-finetuned-ade-640-640":81.4}
+    "segformer-b5-finetuned-ade-640-640":81.4,
+    "vit-mae-large":304,"vit-mae-base":86,"vit-mae-huge":632}
 
 # main
 parser = argparse.ArgumentParser(description='Supervised training')
@@ -80,19 +81,19 @@ assert os.path.isfile(params.tgt_emb)
 assert params.dico_eval == 'default' or os.path.isfile(params.dico_eval)
 assert params.export in ["", "txt", "pth"]
 
-if 'phrase' in params.dico_eval :
-    polysemy_type = 'PHRASE'
-elif '2to3' in params.dico_eval:
-    polysemy_type = '2&3'
-elif 'unk' in params.dico_eval:
-    polysemy_type = 'UNKNOWN'
-elif 'single' in params.dico_eval:
-    polysemy_type = '1'
-else:
-    polysemy_type = '4+'
+# if 'phrase' in params.dico_eval :
+#     polysemy_type = 'PHRASE'
+# elif '2to3' in params.dico_eval:
+#     polysemy_type = '2&3'
+# elif 'unk' in params.dico_eval:
+#     polysemy_type = 'UNKNOWN'
+# elif 'single' in params.dico_eval:
+#     polysemy_type = '1'
+# else:
+#     polysemy_type = '4+'
 
 wandb.init(
-    project="muse_supervised_id2words", 
+    project="muse_supervised_rebuttal_origin", 
     name=f"seed_{params.seed}_{params.src_lang}_{params.tgt_lang}",
     group=f"{params.src_lang}_{params.tgt_lang}",
     tags=[f"{params.src_lang}",f"{params.tgt_lang}"]

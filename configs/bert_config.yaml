@@ -15,5 +15,5 @@ model:
   model_alias: bert # shortcut of models
   pretrained_model: google/bert_uncased_L-2_H-128_A-2 # source of model from huggingface
   model_name: bert_uncased_L-2_H-128_A-2 # specific model name
-  n_components: 2 # dimension size of embeddings
-  need_per_object_embs: True # if you need to save the embeddings of every image/word.
+  n_components: 768 # dimension size of embeddings
+  need_per_object_embs: False # if you need to save the embeddings of every image/word.

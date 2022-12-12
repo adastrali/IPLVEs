@@ -1,11 +1,12 @@
 import os
 
 import numpy as np
-from transformers import SegformerFeatureExtractor, SegformerModel
+from transformers import AutoFeatureExtractor, SegformerFeatureExtractor, ViTMAEModel, SegformerModel
 
 from src import average_word_embedding, load_model
 from src.resnet_encode_categories import resnet_encode
-from src.Segformer_encode import *
+from src.segformer_encode import *
+from src.mae_encode import *
 from src.utils import encode_util, io_util
 from src.utils.build_dico_shuffle import *
 from src.utils.build_dispersion_dictionaries import *
@@ -113,18 +114,7 @@ def main_function(args, logger):
             # print(words, sentences)
             model, tokenizer = load_model(args)
             logger.info('==========Wording embedding==========')
-            
-            start_time = time.time()
-
             words_in_sentences, targets = average_word_embedding(sentences, model, tokenizer, args)
-
-                # Calculate end time
-            end_time = time.time()
-            
-            # Calculate and print running time
-            running_time = end_time - start_time
-            print("Running time:", running_time)
-
             logger.info(f'target shape: {targets.shape}')
             with open(args.data.ordered_wordlist_path,'w') as word_w:
                 for word in words_in_sentences:
@@ -137,23 +127,19 @@ def main_function(args, logger):
             targets = np.load(encodings_path)
             words_in_sentences = open(args.data.ordered_wordlist_path).read().strip().lower().split('\n')
             data_list = words_in_sentences
+
     elif model_type == "VM":
         if not os.path.exists(args.data.image_id2words):
             build_image_classes_maps(args)
         image_class_list_path = os.path.join(args.data.output_dir, f"{args.model.model_name}_image_classes.txt")
         
         if args.model.get('model_alias', 'resnet') == "resnet":
-            # targets, image_classes = resnet_encode(
-            #     args.model.get('model_name', 'resnet18'),
-            #     os.path.expanduser(args.data.image_dir), 
-            #     encodings_path, 
-            #     image_class_list_path, 
-            #     args.data.image_id2words)
             targets, image_classes = resnet_encode(
                 args,
                 encodings_path, 
                 image_class_list_path)
             data_list = image_classes
+
         elif args.model.get('model_alias', 'segformer') == "segformer":
             CACHE_PATH = os.path.join(
                 os.path.expanduser("~/.cache/huggingface/transformers/models"), 
@@ -167,20 +153,50 @@ def main_function(args, logger):
                 cache_dir=CACHE_PATH,
                 output_hidden_states=True, 
                 return_dict=True)
-            
             Resolution = int(args.model.model_name[-3:])
             imageset = ImageDataset(
                 image_dir=os.path.expanduser(args.data.image_dir), 
                 image_category_id=args.data.image_id2words, 
                 extractor=feature_extractor, 
                 resolution=Resolution)
-            batch_size = 1
+            batch_size = 3
             image_dataloader = torch.utils.data.DataLoader(
                 imageset, 
                 batch_size=batch_size, 
                 num_workers=8, 
                 pin_memory=True)
             targets, image_categories = segformer_encode(
+                model, 
+                dataloader=image_dataloader, 
+                encoding_path=encodings_path, 
+                image_classes_path=image_class_list_path,
+                args=args)
+            data_list = image_categories
+
+        elif args.model.get('model_alias', 'mae') == "mae":
+            CACHE_PATH = os.path.join(
+                os.path.expanduser("~/.cache/huggingface/transformers/models"), 
+                args.model.model_name)
+            feature_extractor = AutoFeatureExtractor.from_pretrained(
+                args.model.pretrained_model,
+                cache_dir=CACHE_PATH,
+                output_hidden_states=True)
+            model = ViTMAEModel.from_pretrained(
+                args.model.pretrained_model,
+                cache_dir=CACHE_PATH,
+                output_hidden_states=True, 
+                return_dict=True)
+            imageset = MImageDataset(
+                image_dir=os.path.expanduser(args.data.image_dir), 
+                image_category_id=args.data.image_id2words, 
+                extractor=feature_extractor)
+            bs = args.model.get('batch_size', 1)
+            image_dataloader = torch.utils.data.DataLoader(
+                imageset, 
+                batch_size=bs, 
+                num_workers=8, 
+                pin_memory=True)
+            targets, image_categories = mae_encode(
                 model, 
                 dataloader=image_dataloader, 
                 encoding_path=encodings_path, 
@@ -222,8 +238,7 @@ def main_function(args, logger):
 
 
 if __name__ == "__main__":
-    seed = 42
-    enforce_reproducibility()
+    enforce_reproducibility(42)
 
     parser = io_util.create_args_parser()
     args, unknown = parser.parse_known_args()
@@ -235,15 +250,17 @@ if __name__ == "__main__":
     main_function(config, logger)
 
     # seeds = np.random.randint(0, 1000, size=5)
+    seeds = [203,255,633,813,881]
 
     # # build dictionary image to word
     # if config.model.model_type == "VM":
     #     shuffle_dictionary(config, seeds)
 
-    # # For dispersion, polysemy, frequency experiments
-    # build_dis_dict(config, seeds)
-    # if config.model.model_type == "VM":
-    #     build_polyseme_dict(get_polyseme(config), config, seeds)
-    #     build_frequency_dict(get_frequency_rank(config), config, seeds)
+    # For dispersion, polysemy, frequency experiments
+    if config.model.need_per_object_embs == True:
+        build_dis_dict(config, seeds)
+        # if config.model.model_type == "VM":
+            # build_polyseme_dict(get_polyseme(config), config, seeds)
+        # build_frequency_dict(get_frequency_rank(config), config, seeds)
     
     # io_util.save_config(config, os.path.join(exp_dir, 'config.yaml'))

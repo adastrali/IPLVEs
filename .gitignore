@@ -138,6 +138,7 @@ dmypy.json
 *.xlsx
 /data*
 *_enc/
-/scripts*
+/*scripts*
+/*configs
 /test*
 

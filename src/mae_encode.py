@@ -2,21 +2,20 @@ import os
 
 import numpy as np
 import torch
-from PIL import Image
-from torch.utils.data import Dataset
 from tqdm import tqdm
 
 from .utils.encode_util import *
 
 
+
 # This class inherits from the Dataset class and overrides the __len__ and __getitem__ methods
-class ImageDataset(Dataset):
-    def __init__(self, image_dir, image_category_id, extractor, resolution) -> None:
-        super(ImageDataset, self).__init__()
+class MImageDataset(Dataset):
+    def __init__(self, image_dir, image_category_id, extractor, resolution=224) -> None:
+        super(MImageDataset, self).__init__()
         self.image_root = image_dir
         self.id_name_pairs = open(image_category_id).readlines()
-        self.ids = [i.strip('\n').split(': ')[0] for i in self.id_name_pairs]
-        self.names = [i.strip('\n').split(': ')[1] for i in self.id_name_pairs]
+        self.ids = list(set([i.strip('\n').split(': ')[0] for i in self.id_name_pairs]))
+        # self.names = [i.strip('\n').split(': ')[1] for i in self.id_name_pairs]
         self.extractor = extractor
         self.MAX_SIZE = 200
         self.RESOLUTION_HEIGHT = resolution
@@ -24,7 +23,8 @@ class ImageDataset(Dataset):
         self.CHANNELS = 3
 
     def __len__(self):
-        return len(self.id_name_pairs)
+        # return len(self.id_name_pairs)
+        return len(self.ids)
     
     def __getitem__(self, index):
         images = []
@@ -45,9 +45,9 @@ class ImageDataset(Dataset):
         
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-def segformer_encode(model, dataloader, encoding_path, image_classes_path, args):
+def mae_encode(model, dataloader, encoding_path, image_classes_path, args):
     """
-    Use segformer to get image embeddings.
+    Use MAE to get image embeddings.
     
     Args:
       model: the model to use for encoding
@@ -62,37 +62,26 @@ def segformer_encode(model, dataloader, encoding_path, image_classes_path, args)
         image_categories = open(image_classes_path).read().strip().lower().replace(' ','_').split('\n')
         return encoded_image_classes, image_categories
     
-    model.eval()
     model = model.to(device)
-
+    model.eval()
+    
     categories_encode = []
     image_categories = []
 
     images_name = []
-    for inputs, (names, category_size) in tqdm(dataloader, mininterval=1800.0, maxinterval=3600.0):
+    for inputs, (names, category_size) in tqdm(dataloader, mininterval=180.0, maxinterval=360.0):
         inputs_shape = inputs.shape
         inputs = inputs.reshape(-1, inputs_shape[2],inputs_shape[3],inputs_shape[4]).to(device)
         
-        if 'b5' in args.model.model_name:
-            # for b5
-            bs_features = []
-            bs = 100
-            batches = [inputs[i:i+bs] for i in range(0, len(inputs), bs)]
-            for i in batches:
-                with torch.no_grad():
-                    outputs = model(pixel_values=i)
-                bs_features.append(outputs.last_hidden_state)
-            bs_features = torch.cat(bs_features, axis=0).cpu()
-            chunks = torch.chunk(bs_features, inputs_shape[0], dim=0)
-        else:
-            # for b0-4
-            with torch.no_grad():
-                outputs = model(pixel_values=inputs)
-            chunks = torch.chunk(outputs.last_hidden_state.cpu(), inputs_shape[0], dim=0)
+        with torch.no_grad():
+            outputs = model(pixel_values=inputs)
+        # chunks = torch.chunk(outputs.last_hidden_state[:,0,:].cpu(), inputs_shape[0], dim=0)
+        chunks = torch.chunk(outputs.hidden_states[-1][:,0,:].cpu(), inputs_shape[0], dim=0)
 
         for idx, chip in enumerate(chunks):
             # features for every image
-            images_features = np.mean(chip[:category_size[idx]].numpy(), axis=(2,3), keepdims=True).squeeze()
+            # images_features = np.mean(chip[:category_size[idx]].numpy(), axis=(2,3), keepdims=True).squeeze()
+            images_features = chip[:category_size[idx]].numpy()
             # features for categories
             category_feature = np.expand_dims(images_features.mean(axis=0), 0)
 
