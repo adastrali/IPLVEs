@@ -26,18 +26,20 @@ def is_english(text, model):
 def check_symbols(s):
     arr = []
     SYMBOLS = {'}': '{', ']': '[', ')': '(', '>': '<'}
-    SYMBOLS_L, SYMBOLS_R = SYMBOLS.values(), SYMBOLS.keys()
+    SYMBOLS_L = SYMBOLS.values()
     for c in s:
         if c in SYMBOLS_L:
             # push symbol left to list
             arr.append(c)
-        elif c in SYMBOLS_R:
-            # pop out symbol,
-            if arr and arr[-1] == SYMBOLS[c]:
-                arr.pop()
-            else:
-                return False
-    return True
+        # pop out symbol,
+        elif arr and arr[-1] == SYMBOLS[c]:
+            arr.pop()
+        else:
+            return False
+    if arr:
+        return False
+    else:
+        return True
 
 def crawl_sentences(word, model):
     """
