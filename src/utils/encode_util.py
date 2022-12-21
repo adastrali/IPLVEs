@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from sklearn.decomposition import PCA
 
-from MUSE.src.logger import create_logger
+from .logger import create_logger
 
 from .sentences_downloader import sentences_download
 
