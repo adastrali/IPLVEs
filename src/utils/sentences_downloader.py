@@ -164,7 +164,7 @@ def sentences_download(args):
         if not os.path.exists(download_path):
             os.makedirs(download_path)
         threads = []
-        for i in range(1):
+        for i in range(60):
             thread_index = Crawl_sentences(i, f"Thread-{i}", wordlist=wordlist, index=i*2400, download_path=download_path)
             threads.append(thread_index)
 
